@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://overseardot.github.io/The-Archives-Committee/sitemap.xml
