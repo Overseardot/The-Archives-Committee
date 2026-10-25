@@ -978,7 +978,7 @@ footer{
 
       <form
         id="form"
-        action="https://script.google.com/macros/s/AKfycbw8And9WqjQJte2HrP6PZ29zlamkX-PYip0FjcPPyKlm_gy7a5ZKVw2rMbsT-cZSVgP6A/exec"
+        action="https://script.google.com/macros/s/AKfycbwmD-NwnrZXFHamSCdHBbjyqZlvYp18Uh8lZ5qy-tbc_1lJ2i2i8S6A-WuCmxjTc02ALg/exec"
         method="post"
         target="submitFrame">
 
@@ -1132,8 +1132,12 @@ footer{
 
       </form>
 
+      <div id="formStatus" role="status" aria-live="polite" style="margin-top:14px;color:#ddd"></div>
+
       <iframe
+        id="submitFrame"
         name="submitFrame"
+        title="Registration response"
         hidden>
       </iframe>
 
@@ -1325,59 +1329,74 @@ f.addEventListener(
 );
 
 
-f.addEventListener(
-  'submit',
-  e => {
+const submitFrame = document.getElementById('submitFrame');
+const formStatus = document.getElementById('formStatus');
+let responseTimer = null;
+let submitting = false;
 
-    if(f.website.value)
-      return;
-
-    if(
-      (p.value === 'Coder' ||
-       p.value === 'Editor') &&
-      (
-        !skills.value.trim() ||
-        !experience.value.trim()
-      )
-    ){
-
-      e.preventDefault();
-
-      if(!skills.value.trim())
-        skills.focus();
-      else
-        experience.focus();
-
-      return;
-
-    }
-
-    btn.disabled = true;
-
-    btn.textContent =
-      'TRANSMITTING...';
-
-    setTimeout(() => {
-
-      document.getElementById(
-        'formWrap'
-      ).style.display = 'none';
-
-      document.getElementById(
-        'success'
-      ).style.display = 'block';
-
-      document.getElementById(
-        'success'
-      ).scrollIntoView({
-        behavior:'smooth',
-        block:'center'
-      });
-
-    }, 1200);
-
+function showFormError(message) {
+  formStatus.textContent = message;
+  formStatus.style.color = '#ff7777';
+  btn.disabled = false;
+  btn.textContent = 'TRY AGAIN';
+  submitting = false;
+  if (responseTimer) {
+    clearTimeout(responseTimer);
+    responseTimer = null;
   }
-);
+}
+
+function showFormSuccess() {
+  if (responseTimer) {
+    clearTimeout(responseTimer);
+    responseTimer = null;
+  }
+  document.getElementById('formWrap').style.display = 'none';
+  document.getElementById('success').style.display = 'block';
+  document.getElementById('success').scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
+}
+
+window.addEventListener('message', event => {
+  if (event.source !== submitFrame.contentWindow) return;
+  const result = event.data;
+  if (!result || result.source !== 'tac-registration') return;
+  if (!submitting) return;
+  if (result.status === 'success') {
+    showFormSuccess();
+  } else if (result.status === 'rejected') {
+    showFormError('The submission was rejected. Please check the form and try again.');
+  } else {
+    showFormError('The application could not be saved. Please try again in a moment.');
+  }
+});
+
+f.addEventListener('submit', e => {
+  if (f.website.value) return;
+  if (
+    (p.value === 'Coder' || p.value === 'Editor') &&
+    (!skills.value.trim() || !experience.value.trim())
+  ) {
+    e.preventDefault();
+    if (!skills.value.trim()) skills.focus();
+    else experience.focus();
+    return;
+  }
+  if (submitting) {
+    e.preventDefault();
+    return;
+  }
+  submitting = true;
+  btn.disabled = true;
+  btn.textContent = 'TRANSMITTING...';
+  formStatus.textContent = 'Sending your application securely...';
+  formStatus.style.color = '#ddd';
+  responseTimer = setTimeout(() => {
+    showFormError('No confirmation was received. Your application may or may not have been saved; please check with the Committee before submitting again.');
+  }, 20000);
+});
 
 update();
 
