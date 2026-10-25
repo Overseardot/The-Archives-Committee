@@ -1074,7 +1074,13 @@ footer{
         <input
           type="url"
           name="portfolio"
-          placeholder="https://github.com/username">
+          id="portfolio"
+          placeholder="https://github.com/username"
+          aria-describedby="portfolioHelp">
+
+        <small id="portfolioHelp" style="display:block;color:#929292;margin-top:6px">
+          GitHub profile or repository URL only.
+        </small>
 
         <label>
           Why do you want to join?
@@ -1197,6 +1203,7 @@ const btn = document.getElementById('submit');
 const skills = document.getElementById('skills');
 
 const experience = document.getElementById('experience');
+const portfolio = document.getElementById('portfolio');
 
 const skillsLabel =
   document.getElementById('skillsLabel');
@@ -1277,6 +1284,68 @@ p.addEventListener(
   'change',
   setRoleFields
 );
+
+function validGitHubUrl(value) {
+  if (!value.trim()) return true; // Portfolio is optional.
+
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.toLowerCase();
+
+    if (
+      url.protocol !== 'https:' ||
+      (host !== 'github.com' && host !== 'www.github.com') ||
+      url.username ||
+      url.password ||
+      url.port
+    ) {
+      return false;
+    }
+
+    const parts = url.pathname.split('/').filter(Boolean);
+
+    // A profile has one path segment; a repository has at least two.
+    // Permit deeper paths for links to files or folders inside a repo.
+    if (parts.length < 1) return false;
+
+    const reserved = new Set([
+      'login', 'logout', 'signup', 'join', 'settings',
+      'features', 'topics', 'collections', 'marketplace',
+      'orgs', 'organizations', 'enterprise', 'sponsors',
+      'about', 'pricing', 'security', 'site'
+    ]);
+
+    if (reserved.has(parts[0].toLowerCase())) return false;
+
+    return parts.every(part =>
+      /^[A-Za-z0-9_.-]+$/.test(part) &&
+      part !== '.' &&
+      part !== '..'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function validatePortfolio() {
+  const value = portfolio.value.trim();
+
+  if (!value) {
+    portfolio.setCustomValidity('');
+    return true;
+  }
+
+  const valid = validGitHubUrl(value);
+  portfolio.setCustomValidity(
+    valid ? '' : 'Enter a valid GitHub profile or repository URL, such as https://github.com/username or https://github.com/owner/repository.'
+  );
+  return valid;
+}
+
+portfolio.addEventListener('input', () => {
+  validatePortfolio();
+  update();
+});
 
 
 function update(){
@@ -1381,6 +1450,13 @@ window.addEventListener('message', event => {
 
 f.addEventListener('submit', e => {
   if (f.website.value) return;
+
+  if (!validatePortfolio()) {
+    e.preventDefault();
+    portfolio.reportValidity();
+    portfolio.focus();
+    return;
+  }
   if (
     (p.value === 'Coder' || p.value === 'Editor') &&
     (!skills.value.trim() || !experience.value.trim())
