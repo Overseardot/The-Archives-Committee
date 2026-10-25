@@ -1281,20 +1281,26 @@ p.addEventListener(
 
 function update(){
 
+  // Progress reflects only fields the applicant must complete.
+  // Optional portfolio links and hidden role-specific fields
+  // do not prevent the bar from reaching 100%.
   const fields = [
     ...f.querySelectorAll(
-      'input:not([name=website]),select,textarea'
+      'input[required],select[required],textarea[required]'
     )
-  ];
+  ].filter(x => {
+    const conditional = x.closest('.conditional');
+    return !conditional || conditional.classList.contains('show');
+  });
 
-  const filled =
-    fields.filter(
-      x => x.value.trim()
-    ).length;
+  const filled = fields.filter(
+    x => x.value.trim()
+  ).length;
 
   bar.style.width =
-    Math.round(
-      filled / fields.length * 100
+    (fields.length
+      ? Math.round(filled / fields.length * 100)
+      : 0
     ) + '%';
 
 }
